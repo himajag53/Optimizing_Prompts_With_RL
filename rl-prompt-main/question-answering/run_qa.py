@@ -10,6 +10,13 @@ from rlprompt.utils.utils import colorful_print, compose_hydra_config_store, get
 
 from qa_helpers import QuestionAnsweringRewardConfig, QuestionAnsweringDatasetConfig, make_question_answering_reward, make_question_answering_datasets
 
+
+# Compose default config
+config_list = [QuestionAnsweringDatasetConfig,
+                QuestionAnsweringRewardConfig, LMAdaptorModelConfig,
+                SinglePromptModelConfig, SQLModuleConfig, TrainerConfig]
+cs = compose_hydra_config_store('base_qa', config_list)
+
 @hydra.main(version_base=None, config_path="./", config_name="qa_config")
 def main(config: "DictConfig"):
     """

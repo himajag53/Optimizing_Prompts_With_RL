@@ -4,8 +4,6 @@ defaults:
   - _self_
 # Data
 dataset: "squad"
-dataset_seed: null
-direction: "???"
 # Reward
 task_lm: "gpt2"
 compute_zscore: True

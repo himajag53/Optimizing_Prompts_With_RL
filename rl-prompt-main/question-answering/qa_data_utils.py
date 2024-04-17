@@ -13,14 +13,14 @@ class QuestionAnsweringDataset(Dataset):
     def __init__(self, 
                  source_contexts,
                  source_questions, 
-                 target_labels,
+                 target_answers,
                  context_idx_map):
         
-        assert len(source_questions) == target_labels
+        assert len(source_questions) == len(target_answers)
 
         self.source_contexts = source_contexts
         self.source_questions = source_questions
-        self.target_labels = target_labels
+        self.target_answers = target_answers
         self.context_idx_map = context_idx_map
 
     def __len__(self):
@@ -35,7 +35,7 @@ class QuestionAnsweringDataset(Dataset):
         """
         item = {'source_context': self.source_contexts[self.context_idx_map[index]],
                 'source_questions': self.source_questions[index],
-                'target_labels': self.target_labels[index]}
+                'target_answers': self.target_answers[index]}
         return item
     
 
@@ -74,12 +74,12 @@ def load_question_answering_dataset(
     context_idx_map = {}
 
     question_idx = 0
-    for context, i in enumerate(data_json):
+    for i, context in enumerate(data_json):
         source_contexts.append(context['context'])
 
         for qa in context['qas']:
             source_questions.append(qa['question'])
-            target_labels.append(qa['answers']['text'])
+            target_labels.append(qa['answers'][0]['text'])
             context_idx_map[question_idx] = i
             question_idx += 1
 

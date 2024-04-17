@@ -26,8 +26,14 @@ def make_question_answering_datasets(config: "DictConfig") -> (
     data_dict = {}
     for split in ['train', 'dev', 'test']:
 
+        # TODO: temp test placeholder this is very jank
+        if split == 'test':
+            d_split = 'dev'
+        else:
+            d_split = split
+
         source_contexts, source_questions, target_labels, context_idx_map = load_question_answering_dataset(
-            config.dataset, split, config.base_path)
+            config.dataset, d_split, config.base_path)
         tst_dataset = QuestionAnsweringDataset(source_contexts, source_questions, target_labels, context_idx_map)
         data_dict[split] = tst_dataset
 
