@@ -1,5 +1,11 @@
-from typing import List
+from typing import Dict, List
+
+import numpy as np
+import torch
 from rlprompt.rewards import BaseReward
+
+
+SUPPORTED_LMS = []
 
 
 def compute_em_score(predictions: List[str], 
@@ -83,7 +89,10 @@ class QuestionAnsweringReward(BaseReward):
                  task_lm: str,
                  compute_zscore: bool):
         
+        assert task_lm in SUPPORTED_LMS
+        print('Task LM:', task_lm)
         self.task_lm = task_lm
+
         self.compute_zscore = compute_zscore
 
     def forward(self, 
@@ -102,7 +111,7 @@ class QuestionAnsweringReward(BaseReward):
             target_labels: List of target labels.
             output_tokens: List of output tokens.
             to_tensor: Function to convert to tensor.
-            mode: Training mode.
+            mode: Training mode ('train' or 'infer').
 
         Returns:
             overall_reward: Overall reward (average of normalized rewards).
@@ -119,7 +128,7 @@ class QuestionAnsweringReward(BaseReward):
         rewards = [em + f1 for em, f1 in zip(em_scores, f1_scores)]
 
         # normalize rewards
-        if self.compute_zscore:
+        if mode == 'train' and self.compute_zscore:
             rewards_tensor = to_tensor(rewards)
             mean = rewards_tensor.mean()
             std = rewards_tensor.std()
@@ -130,3 +139,4 @@ class QuestionAnsweringReward(BaseReward):
         overall_reward = sum(rewards) / len(rewards)
 
         return overall_reward, rewards
+    
