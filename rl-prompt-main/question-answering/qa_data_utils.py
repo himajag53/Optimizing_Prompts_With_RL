@@ -25,13 +25,13 @@ class QuestionAnsweringDataset(Dataset):
 
     def __len__(self):
         """
-        TODO
+        Get number of questions in the dataset.
         """
         return len(self.source_questions)
 
     def __getitem__(self, index):
         """
-        TODO
+        Get the item at the provided index. Returns a dict containing source_context, source_questions, target_labels
         """
         item = {'source_context': self.source_contexts[self.context_idx_map[index]],
                 'source_questions': self.source_questions[index],
@@ -42,21 +42,25 @@ class QuestionAnsweringDataset(Dataset):
 def load_question_answering_dataset(
     dataset: str,
     split: str,
-    dataset_seed: Optional[int],
     base_path: str
 ) -> Tuple[List[str], List[str], List[str], dict]:
     """
-    TODO
+    Load in the dataset file.
+
+    :param dataset: dataset source (e.g. 'squad')
+    :param split: train or dev
+    :param base_path: base path to data directory
+    :return: Tuple containing: list of question contexts,
+                               list of questions,
+                               list of answers,
+                               dict mapping each question to its context
     """
+
     # make all the sources, target and context idx dict
     assert dataset in ['squad']
 
     # get file path info
-    # seed_dict = {0: '16-100', 1: '16-13', 2: '16-21', 3: '16-42', 4: '16-87'}
-    # seed_path = seed_dict[dataset_seed]
-    # filepath = f'{dataset}/{seed_path}/{split}.tsv'
-
-    filepath = f'{dataset}'
+    filepath = f'{dataset}/{split}-v1.json'
     full_filepath = os.path.join(base_path, filepath)
 
     # read file
