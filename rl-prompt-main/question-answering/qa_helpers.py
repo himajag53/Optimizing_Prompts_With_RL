@@ -1,19 +1,15 @@
 from dataclasses import dataclass
+from omegaconf import DictConfig
 from typing import Tuple
 
-from omegaconf import DictConfig
-
 from qa_data_utils import QuestionAnsweringDataset, load_question_answering_dataset
+from qa_reward import QuestionAnsweringReward
 
 
 @dataclass
 class QuestionAnsweringRewardConfig():
-    """
-    
-    """
-
-    def __init__(self) -> None:
-        pass
+    task_lm: str = "???"
+    compute_zscore: bool = True
 
 
 @dataclass
@@ -38,8 +34,8 @@ def make_question_answering_datasets(config: "DictConfig") -> (
     return data_dict['train'], data_dict['dev'], data_dict['test']
 
 
-def make_question_answering_reward():
+def make_question_answering_reward(config: "DictConfig") -> QuestionAnsweringReward:
     """
     TODO
     """
-    pass
+    return QuestionAnsweringReward(config.task_lm, config.compute_zscore)
