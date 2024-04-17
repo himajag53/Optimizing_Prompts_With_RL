@@ -5,7 +5,7 @@ import torch
 from rlprompt.rewards import BaseReward
 
 
-SUPPORTED_LMS = []
+SUPPORTED_LMS = ["gpt2"]
 
 
 def compute_em_score(predictions: List[str], 
@@ -139,4 +139,3 @@ class QuestionAnsweringReward(BaseReward):
         overall_reward = sum(rewards) / len(rewards)
 
         return overall_reward, rewards
-    

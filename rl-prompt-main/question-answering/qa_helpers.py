@@ -8,13 +8,13 @@ from qa_reward import QuestionAnsweringReward
 
 @dataclass
 class QuestionAnsweringRewardConfig():
-    task_lm: str = "???"
+    task_lm: str = "gpt2"
     compute_zscore: bool = True
 
 
 @dataclass
 class QuestionAnsweringDatasetConfig:
-    dataset: str = "???"
+    dataset: str = "squad"
     base_path: str = './data'
 
 

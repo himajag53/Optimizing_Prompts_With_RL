@@ -15,6 +15,7 @@ def main(config: "DictConfig"):
     """
     
     """
+    print("Entered main.")
     colorful_print(OmegaConf.to_yaml(config), fg='red')
     output_dir = get_hydra_output_dir()
 
