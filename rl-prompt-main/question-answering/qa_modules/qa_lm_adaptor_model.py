@@ -5,8 +5,8 @@ from typing import Optional, List, Dict, Union
 
 from transformers import pipeline, AutoTokenizer
 
-from .base_model import BaseModel
-from .model_utils import _top_k_logits, _top_p_logits
+from rlprompt.models.base_model import BaseModel
+from rlprompt.models.model_utils import _top_k_logits, _top_p_logits
 
 
 SUPPORTED_LMS = ['distilgpt2', 'gpt2', 'gpt2-medium',

@@ -211,6 +211,7 @@ class Trainer:
         for batch in eval_dataloader:
             infer_outputs: Dict[str, Union[torch.Tensor, List[List[str]]]]
             infer_outputs = model.infer(batch)
+
             hypos += infer_outputs['sample_tokens']
 
             score, score_log = model.compute_rewards(
@@ -219,11 +220,12 @@ class Trainer:
             scores += score.detach().tolist()
 
         if output_save_path is not None:
+            print(hypos)
             json.dump({'output_tokens': hypos,
                        'scores': scores},
                       open(output_save_path, 'w'))
 
-        score = score.mean().item()
+        score = torch.as_tensor(scores).mean().item()
 
         utils.add_prefix_to_dict_keys_inplace(
             score_log,

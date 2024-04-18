@@ -1,15 +1,21 @@
-from typing import Dict, List
+from collections import defaultdict
+from typing import Dict, List, Optional
 
 import numpy as np
 import torch
+from transformers import AutoTokenizer, AutoModelForMaskedLM, GPT2LMHeadModel, pipeline
+
 from rlprompt.rewards import BaseReward
 
 
 SUPPORTED_LMS = ["gpt2"]
+SUPPORTED_LEFT_TO_RIGHT_LMS = ['distilgpt2', 'gpt2', 'gpt2-medium',
+                               'gpt2-large', 'gpt2-xl']
+SUPPORTED_MASK_LMS = ['distilroberta-base', 'roberta-base', 'roberta-large']
 
 
-def compute_em_score(predictions: List[str], 
-                     truths: List[str]):
+def compute_em_score(prediction: str,
+                     truth: str):
     """
     Computes the exact match (EM) score for a list of predicted strings and ground truth strings.
 
@@ -20,11 +26,22 @@ def compute_em_score(predictions: List[str],
     Returns:
         List of booleans indicating whether each prediction exactly matches its corresponding ground truth.
     """
-    return [p == t for p, t in zip(predictions, truths)]
+    # print("\npredictions")
+    # print(prediction)
+    #
+    # print("\ntruths")
+    # print(truth)
+
+    return prediction == truth
+
+    # em_score = [p == t for p, t in zip(predictions, truths)]
+    # print("\nem_score")
+    # print(em_score)
+    # return sum(em_score)/len(em_score)
 
 
-def compute_f1_score(predictions: List[str], 
-                     truths: List[str]) -> float:
+def compute_f1_score(prediction: str,
+                     truth: str) -> float:
     """
     Computes the F1 score for a list of predictions and ground truths.
 
@@ -52,32 +69,22 @@ def compute_f1_score(predictions: List[str],
         words2 = set(string2.split())
         return len(words1.intersection(words2))
 
-    # initialize
-    precisions = []
-    recalls = []
+    # precision is ratio of shared words to the total # of words in prediction
+    if len(prediction.split()) > 0:
+        precision = shared_words_count(prediction, truth) / len(prediction.split())
+    else:
+        precision = 0
 
-    for p, t in zip(predictions, truths):
-        # precision is ratio of shared words to the total # of words in prediction
-        if len(p.split()) > 0:
-            precisions.append(shared_words_count(p, t) / len(p.split()))
-        else:
-            precisions.append(0)
+    # recall is ratio of shared words to the total # of words in ground truth
+    if len(truth.split()) > 0:
+        recall = shared_words_count(prediction, truth) / len(truth.split())
+    else:
+        recall = 0
 
-        # recall is ratio of shared words to the total # of words in ground truth
-        if len(t.split()) > 0:
-            recalls.append(shared_words_count(p, t) / len(t.split()))
-        else:
-            recalls.append(0)
+    if precision + recall == 0:
+        return 0
 
-    # compute average precision and recall scores
-    avg_precision = sum(precisions) / len(precisions)
-    avg_recall = sum(recalls) / len(recalls)
-
-    # compute f1 score
-    if avg_precision + avg_recall == 0:
-        return  0
-    
-    return 2 * (avg_precision * avg_recall) / (avg_precision + avg_recall)
+    return 2 * (precision * recall) / (precision + recall)
 
 
 class QuestionAnsweringReward(BaseReward):
@@ -88,18 +95,25 @@ class QuestionAnsweringReward(BaseReward):
     def __init__(self, 
                  task_lm: str,
                  compute_zscore: bool):
+
+        self.device = torch.device("cuda" if torch.cuda.is_available()
+                                   else "cpu")
         
         assert task_lm in SUPPORTED_LMS
         print('Task LM:', task_lm)
         self.task_lm = task_lm
 
         self.compute_zscore = compute_zscore
+        self.tokenizer = AutoTokenizer.from_pretrained(task_lm)
+        self.generator = pipeline("question-answering",
+                                  model=self.task_lm,
+                                  tokenizer=self.tokenizer,
+                                  device=0)
 
     def forward(self, 
-                source_contexts: List[str],
-                source_questions: List[str], 
+                source_texts: Dict,
                 target_labels: List[str],
-                output_tokens: List[str], 
+                output_tokens: List[List[str]],
                 to_tensor,
                 mode):
         """
@@ -118,24 +132,55 @@ class QuestionAnsweringReward(BaseReward):
             rewards: List of computed rewards for each input example.
         """
 
-        # compute EM score for each example
-        em_scores = [compute_em_score([o], [t]) for o, t in zip(output_tokens, target_labels)]
+        # convert tokens to output prompts
+        prompt_tokens = output_tokens
+        prompt_strings = self._convert_tokens_to_string(prompt_tokens)
+        batch_size = len(source_texts)
+        # print("\nsource_texts")
+        # print(source_texts)
 
-        # compute f1 score for each example
-        f1_scores = [compute_f1_score([o], [t]) for o, t in zip(output_tokens, target_labels)]
+        rewards = []
+        quantities_to_log: Dict[str, List[torch.Tensor]] = defaultdict(list)
 
-        # combine EM and f1 scores
-        rewards = [em + f1 for em, f1 in zip(em_scores, f1_scores)]
+        for i, (prompt, question, context, label) in enumerate(zip(prompt_strings,
+                                                     source_texts['question'],
+                                                     source_texts['context'],
+                                                     target_labels)):
 
+            # print(prompt)
+            full_input = prompt + " " + question
+            hypos = self.generator(question=full_input, context=context)
+            pred_answer = hypos['answer']
+
+            # compute EM score for each example
+            em_scores = compute_em_score(pred_answer, label)
+            quantities_to_log['em_scores'].append(torch.as_tensor(em_scores))
+
+            # compute f1 score for each example
+            f1_scores = compute_f1_score(pred_answer, label)
+            quantities_to_log['f1_scores'].append(torch.as_tensor(f1_scores))
+
+            # combine EM and f1 scores
+            reward = em_scores + f1_scores
+
+            rewards.append(reward)
+
+        rewards = torch.as_tensor(rewards)
         # normalize rewards
         if mode == 'train' and self.compute_zscore:
-            rewards_tensor = to_tensor(rewards)
+            # print("\nrewards normalizing")
+            # print(rewards)
+            rewards_tensor = torch.as_tensor(rewards, dtype=torch.float32)
             mean = rewards_tensor.mean()
             std = rewards_tensor.std()
 
-            rewards = [(r - mean) / (std + 1e-8) for r in rewards]
-        
-        # compute overall reward
-        overall_reward = sum(rewards) / len(rewards)
+            rewards = (rewards - mean) / (std + 1e-8)
 
-        return overall_reward, rewards
+        # compute overall reward
+        # overall_reward = sum(rewards) / len(rewards)
+
+        return rewards, quantities_to_log
+
+    def _convert_tokens_to_string(self, tokens: List[List[str]]) -> List[str]:
+        return [self.tokenizer.convert_tokens_to_string(s)
+                for s in tokens]

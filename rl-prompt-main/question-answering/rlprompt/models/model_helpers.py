@@ -9,7 +9,8 @@ def make_lm_adaptor_model(config: "DictConfig") -> LMAdaptorModel:
                           config.fluent,
                           config.fluent_top_k,
                           config.max_decoding_length,
-                          config.eos_token_id)
+                          config.eos_token_id,
+                          config.task)
 
 
 def make_single_prompt_model(model: BaseModel,
@@ -46,6 +47,8 @@ class LMAdaptorModelConfig:
     # Max output token length for the model
     eos_token_id: Optional[int] = None
     # The end-of-sentence token id, set to None for fixed-length prompts
+    task: Optional[str] = 'text-generation'
+    # task for the huggingface transformer pipeline
 
 
 @dataclass

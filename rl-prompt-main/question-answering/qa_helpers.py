@@ -7,7 +7,7 @@ from qa_reward import QuestionAnsweringReward
 
 
 @dataclass
-class QuestionAnsweringRewardConfig():
+class QuestionAnsweringRewardConfig:
     task_lm: str = "gpt2"
     compute_zscore: bool = True
 
@@ -32,9 +32,13 @@ def make_question_answering_datasets(config: "DictConfig") -> (
         else:
             d_split = split
 
-        source_contexts, source_questions, target_labels, context_idx_map = load_question_answering_dataset(
+        # source_contexts, source_questions, target_labels, context_idx_map = load_question_answering_dataset(
+        #     config.dataset, d_split, config.base_path)
+        # tst_dataset = QuestionAnsweringDataset(source_contexts, source_questions, target_labels, context_idx_map)
+
+        source_texts, target_labels = load_question_answering_dataset(
             config.dataset, d_split, config.base_path)
-        tst_dataset = QuestionAnsweringDataset(source_contexts, source_questions, target_labels, context_idx_map)
+        tst_dataset = QuestionAnsweringDataset(source_texts, target_labels)
         data_dict[split] = tst_dataset
 
     return data_dict['train'], data_dict['dev'], data_dict['test']

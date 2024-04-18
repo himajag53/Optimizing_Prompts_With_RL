@@ -125,7 +125,10 @@ class SQLModule(BaseModule):
             self.compute_rewards(batch=batch, 
                                   output_tokens=output_tokens,
                                   mode="train")
+        # print()
+        # print(raw_rewards)
         shaped_rewards = self._reward_shaping_func(raw_rewards)
+        # print(shaped_rewards)
 
         sql_loss, sql_loss_log = sql_loss_with_sparse_rewards(
             implementation=self._sql_loss_impl,
@@ -163,6 +166,9 @@ class SQLModule(BaseModule):
             output_tokens=output_tokens,
             to_tensor=to_tensor,
             mode=mode)
+        # print()
+        # print(rewards_log)
+        # print(rewards_tensor)
 
         rewards_tensor = rewards_tensor.to(device)            
         return rewards_tensor, rewards_log
@@ -183,6 +189,7 @@ class SQLModule(BaseModule):
         batch: Dict[str, Any],
     ) -> Tuple[torch.Tensor, torch.Tensor, List[List[str]],
                torch.LongTensor, torch.LongTensor]:
+        print(batch)
         outputs = self._model.generate(**batch,
                                        do_sample=True,
                                        top_k=self._top_k,

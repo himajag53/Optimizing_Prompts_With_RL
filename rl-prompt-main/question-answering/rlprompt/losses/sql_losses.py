@@ -39,6 +39,7 @@ def sql_loss_with_sparse_rewards(
         raise TypeError
 
     if rewards.ndim != 1 or logits.shape[0] != rewards.shape[0]:
+        # print(logits.shape, rewards.shape, rewards.ndim)
         raise ValueError
 
     if implementation == "v0":
@@ -159,7 +160,7 @@ def soft_q_loss_with_sparse_rewards_2(
     A = Q - V
     # print(logits.shape)
     # print(V)
-    print(Q)
+    # print(Q)
 
     # Target outputs
     Q_ = torch.zeros_like(Q)
