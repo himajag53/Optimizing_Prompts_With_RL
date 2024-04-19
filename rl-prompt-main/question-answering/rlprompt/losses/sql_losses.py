@@ -84,6 +84,8 @@ def sql_loss_with_sparse_rewards(
         sequence_length=sequence_length
     )
 
+    # print(raw_losses)
+
     loss = loss_utils.mask_and_reduce(
         sequence=raw_losses,
         sequence_length=sequence_length)

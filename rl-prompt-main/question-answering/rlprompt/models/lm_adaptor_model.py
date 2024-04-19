@@ -97,7 +97,11 @@ class LMAdaptorModel(BaseModel):
         sample_ids: torch.Tensor,
         **kwargs
     ) -> Dict[str, torch.Tensor]:
+        # print(source_texts)
+        # print(sample_ids.shape)
         state, past_key_values = self._get_generation_cache(source_texts)
+        # print(state)
+        # print(past_key_values)
 
         sample_logits = []
         for i in range(sample_ids.shape[-1]):
@@ -128,11 +132,15 @@ class LMAdaptorModel(BaseModel):
         eos_token_id: Optional[int],
         **kwargs
     ) -> Dict[str, Union[torch.Tensor, List[str]]]:
+        # print("****")
+        # print(source_texts)
+        # print("****")
         if eos_token_id is not None:
             raise NotImplementedError(
                 "Only support fixed length prompt for now")
 
         state, past_key_values = self._get_generation_cache(source_texts)
+
         sample_tokens = [[] for _ in source_texts]
         sample_ids, sample_logits = [], []
         for i in range(max_new_tokens):
@@ -251,6 +259,9 @@ class LMAdaptorModel(BaseModel):
         eos_token_id: Optional[int] = None,
         **kwargs
     ) -> Dict[str, Union[torch.Tensor, List[str]]]:
+        # print("*")
+        # print(source_texts)
+        # print("*")
         assert num_beams == 1, "Beam search not supported yet"
         if max_new_tokens is None:
             max_new_tokens = self.max_decoding_length

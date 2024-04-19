@@ -78,7 +78,7 @@ def load_question_answering_dataset(
     assert dataset in ['squad']
 
     # get file path info
-    filepath = f'{dataset}/{split}-v1.json'
+    filepath = f'{dataset}/{split}-v3.json'
     full_filepath = os.path.join(base_path, filepath)
 
     # read file
@@ -86,24 +86,30 @@ def load_question_answering_dataset(
         data_json = json.load(f)
 
     # set up lists for storing
-    # source_contexts = []
-    # source_questions = []
-    # target_labels = []
-    # context_idx_map = {}
+    source_contexts = []
+    source_questions = []
+    target_labels = []
+    context_idx_map = {}
 
     source_texts = []
     target_labels = []
-    question_idx = 0
-    for i, context in enumerate(data_json):
-        # source_contexts.append(context['context'])
 
-        for qa in context['qas']:
-            # source_questions.append(qa['question'])
-            target_labels.append(qa['answers'][0]['text'])
-            # context_idx_map[question_idx] = i
-            qa['context'] = context['context']
-            source_texts.append(qa)
-            question_idx += 1
+
+    question_idx = 0
+    for question in data_json:
+        source_texts.append(question['context_and_question'])
+        target_labels.append(question['answer'])
+
+    # for i, context in enumerate(data_json):
+    #     # source_contexts.append(context['context'])
+    #
+    #     for qa in context['qas']:
+    #         source_questions.append(qa['question'])
+    #         target_labels.append(qa['answers'][0]['text'])
+    #         context_idx_map[question_idx] = i
+    #         qa['context'] = context['context']
+    #         source_texts.append(qa)
+    #         question_idx += 1
 
     # return source_contexts, source_questions, target_labels, context_idx_map
     return source_texts, target_labels

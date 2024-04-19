@@ -208,6 +208,7 @@ class Trainer:
         model = self.module.eval()
         hypos = []
         scores: List[List[str]] = []
+        step = 0
         for batch in eval_dataloader:
             infer_outputs: Dict[str, Union[torch.Tensor, List[List[str]]]]
             infer_outputs = model.infer(batch)
@@ -218,6 +219,9 @@ class Trainer:
                 batch=batch,
                 output_tokens=infer_outputs['sample_tokens'])
             scores += score.detach().tolist()
+            if step >= 1000:
+                break
+            step += 1
 
         if output_save_path is not None:
             print(hypos)

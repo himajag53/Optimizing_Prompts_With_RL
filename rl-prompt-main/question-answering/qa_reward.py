@@ -3,14 +3,14 @@ from typing import Dict, List, Optional
 
 import numpy as np
 import torch
-from transformers import AutoTokenizer, AutoModelForMaskedLM, GPT2LMHeadModel, pipeline
+from transformers import AutoTokenizer, pipeline
 
 from rlprompt.rewards import BaseReward
 
 
-SUPPORTED_LMS = ["gpt2"]
-SUPPORTED_LEFT_TO_RIGHT_LMS = ['distilgpt2', 'gpt2', 'gpt2-medium',
+SUPPORTED_LMS = ['distilgpt2', 'gpt2', 'gpt2-medium',
                                'gpt2-large', 'gpt2-xl']
+
 SUPPORTED_MASK_LMS = ['distilroberta-base', 'roberta-base', 'roberta-large']
 
 
@@ -26,22 +26,12 @@ def compute_em_score(prediction: str,
     Returns:
         List of booleans indicating whether each prediction exactly matches its corresponding ground truth.
     """
-    # print("\npredictions")
-    # print(prediction)
-    #
-    # print("\ntruths")
-    # print(truth)
 
     return prediction == truth
 
-    # em_score = [p == t for p, t in zip(predictions, truths)]
-    # print("\nem_score")
-    # print(em_score)
-    # return sum(em_score)/len(em_score)
 
-
-def compute_f1_score(prediction: str,
-                     truth: str) -> float:
+def compute_f1_score(prediction: dict,
+                     truth: str):
     """
     Computes the F1 score for a list of predictions and ground truths.
 
@@ -69,6 +59,7 @@ def compute_f1_score(prediction: str,
         words2 = set(string2.split())
         return len(words1.intersection(words2))
 
+    prediction = prediction['generated_text']
     # precision is ratio of shared words to the total # of words in prediction
     if len(prediction.split()) > 0:
         precision = shared_words_count(prediction, truth) / len(prediction.split())
@@ -87,6 +78,7 @@ def compute_f1_score(prediction: str,
     return 2 * (precision * recall) / (precision + recall)
 
 
+
 class QuestionAnsweringReward(BaseReward):
     """
     Reward class for Question-Answering task.
@@ -94,24 +86,37 @@ class QuestionAnsweringReward(BaseReward):
 
     def __init__(self, 
                  task_lm: str,
-                 compute_zscore: bool):
+                 task_top_k: int,
+                 compute_zscore: bool,
+                 template: str,
+                 pad_token: str,
+                 lower_outputs: bool,
+                 control_output_length: bool = False,
+                 end_punct: str = '"'):
 
         self.device = torch.device("cuda" if torch.cuda.is_available()
                                    else "cpu")
         
-        assert task_lm in SUPPORTED_LMS
+        assert task_lm in SUPPORTED_LMS or task_lm in SUPPORTED_MASK_LMS
         print('Task LM:', task_lm)
         self.task_lm = task_lm
+        self.top_k = task_top_k
+        self.top_p = 1.0
+        self.end_punct = end_punct
+        self.control_output_length = control_output_length
+        self.lower_outputs = lower_outputs
 
         self.compute_zscore = compute_zscore
-        self.tokenizer = AutoTokenizer.from_pretrained(task_lm)
-        self.generator = pipeline("question-answering",
+        self.tokenizer = AutoTokenizer.from_pretrained(task_lm, pad_token=pad_token)
+        self.template = template
+
+        self.generator = pipeline("text-generation",
                                   model=self.task_lm,
                                   tokenizer=self.tokenizer,
                                   device=0)
 
     def forward(self, 
-                source_texts: Dict,
+                source_texts: List[str],
                 target_labels: List[str],
                 output_tokens: List[List[str]],
                 to_tensor,
@@ -142,15 +147,20 @@ class QuestionAnsweringReward(BaseReward):
         rewards = []
         quantities_to_log: Dict[str, List[torch.Tensor]] = defaultdict(list)
 
-        for i, (prompt, question, context, label) in enumerate(zip(prompt_strings,
-                                                     source_texts['question'],
-                                                     source_texts['context'],
+        for i, (prompt, src, label) in enumerate(zip(prompt_strings,
+                                                     source_texts,
                                                      target_labels)):
 
-            # print(prompt)
-            full_input = prompt + " " + question
-            hypos = self.generator(question=full_input, context=context)
-            pred_answer = hypos['answer']
+
+            full_input = " ".join((prompt, src))
+            hypos = self.generator(text_inputs=full_input,
+                                   max_new_tokens=50,
+                                   pad_token_id=self.tokenizer.eos_token_id,
+                                   # Only return generated text, without the prompt
+                                   return_full_text=False
+                                   )
+
+            pred_answer = hypos[0]
 
             # compute EM score for each example
             em_scores = compute_em_score(pred_answer, label)
@@ -165,6 +175,14 @@ class QuestionAnsweringReward(BaseReward):
 
             rewards.append(reward)
 
+        # print()
+        # print(src)
+        # print(prompt)
+        # print(pred_answer)
+        # print(label)
+        # print()
+
+        # print(generated_texts)
         rewards = torch.as_tensor(rewards)
         # normalize rewards
         if mode == 'train' and self.compute_zscore:

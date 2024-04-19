@@ -9,7 +9,13 @@ from qa_reward import QuestionAnsweringReward
 @dataclass
 class QuestionAnsweringRewardConfig:
     task_lm: str = "gpt2"
+    task_top_k: int = 1
     compute_zscore: bool = True
+    template: str = '{prompt} "{sentence_1}" "'
+    pad_token: str = '<|endoftext|>'
+    lower_outputs: bool = False  # Whether to convert all outputs to lower case
+    control_output_length: bool = False
+    end_punct: str = '"'
 
 
 @dataclass
@@ -26,18 +32,12 @@ def make_question_answering_datasets(config: "DictConfig") -> (
     data_dict = {}
     for split in ['train', 'dev', 'test']:
 
-        # TODO: temp test placeholder this is very jank
-        if split == 'test':
-            d_split = 'dev'
-        else:
-            d_split = split
-
         # source_contexts, source_questions, target_labels, context_idx_map = load_question_answering_dataset(
         #     config.dataset, d_split, config.base_path)
         # tst_dataset = QuestionAnsweringDataset(source_contexts, source_questions, target_labels, context_idx_map)
 
         source_texts, target_labels = load_question_answering_dataset(
-            config.dataset, d_split, config.base_path)
+            config.dataset, split, config.base_path)
         tst_dataset = QuestionAnsweringDataset(source_texts, target_labels)
         data_dict[split] = tst_dataset
 
@@ -48,4 +48,11 @@ def make_question_answering_reward(config: "DictConfig") -> QuestionAnsweringRew
     """
     TODO
     """
-    return QuestionAnsweringReward(config.task_lm, config.compute_zscore)
+    return QuestionAnsweringReward(config.task_lm,
+                                   config.task_top_k,
+                                   config.compute_zscore,
+                                   config.template,
+                                   config.pad_token,
+                                   config.lower_outputs,
+                                   config.control_output_length,
+                                   config.end_punct)
