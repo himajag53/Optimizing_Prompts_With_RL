@@ -8,8 +8,10 @@ from qa_reward import QuestionAnsweringReward
 
 @dataclass
 class QuestionAnsweringRewardConfig:
-    task_lm: str = "gpt2"
-    task_top_k: int = 1
+    task_lm: str = "distilgpt2"
+    task_top_k: int = 5
+    num_samples: int = 16
+    num_bootstraps: int = 3
     compute_zscore: bool = True
     template: str = '{prompt} "{sentence_1}" "'
     pad_token: str = '<|endoftext|>'
@@ -22,6 +24,7 @@ class QuestionAnsweringRewardConfig:
 class QuestionAnsweringDatasetConfig:
     dataset: str = "squad"
     base_path: str = './data'
+    version: int = 3
 
 
 def make_question_answering_datasets(config: "DictConfig") -> (
@@ -37,7 +40,7 @@ def make_question_answering_datasets(config: "DictConfig") -> (
         # tst_dataset = QuestionAnsweringDataset(source_contexts, source_questions, target_labels, context_idx_map)
 
         source_texts, target_labels = load_question_answering_dataset(
-            config.dataset, split, config.base_path)
+            config.dataset, split, config.base_path, config.version)
         tst_dataset = QuestionAnsweringDataset(source_texts, target_labels)
         data_dict[split] = tst_dataset
 
@@ -50,6 +53,8 @@ def make_question_answering_reward(config: "DictConfig") -> QuestionAnsweringRew
     """
     return QuestionAnsweringReward(config.task_lm,
                                    config.task_top_k,
+                                   config.num_samples,
+                                   config.num_bootstraps,
                                    config.compute_zscore,
                                    config.template,
                                    config.pad_token,

@@ -1,0 +1,11 @@
+# Question-Answering Config
+defaults:
+  - base_eval
+  - _self_
+# Data
+dataset: "squad"
+base_path: './../data'
+# Eval
+task_lm: "distilgpt2"
+prompt: "\u0120municipality\u0120Dre\u0120Dre\u0120Dre\u0120Dre"
+

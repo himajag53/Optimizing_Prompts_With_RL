@@ -9,6 +9,8 @@ task_lm: "distilgpt2"
 compute_zscore: True
 lower_outputs: true
 control_output_length: true
+num_samples: 16
+num_bootstraps: 3
 # Single Prompt Model
 prompt_length: 5
 prompt_train_batch_size: 2

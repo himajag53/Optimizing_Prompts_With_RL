@@ -59,7 +59,8 @@ class QuestionAnsweringDataset(Dataset):
 def load_question_answering_dataset(
     dataset: str,
     split: str,
-    base_path: str
+    base_path: str,
+    version: int=4
 # ) -> Tuple[List[str], List[str], List[str], dict]:
 ) -> Tuple[List[str], List[str]]:
     """
@@ -78,7 +79,7 @@ def load_question_answering_dataset(
     assert dataset in ['squad']
 
     # get file path info
-    filepath = f'{dataset}/{split}-v3.json'
+    filepath = f'{dataset}/{split}-v{version}.json'
     full_filepath = os.path.join(base_path, filepath)
 
     # read file
@@ -88,7 +89,6 @@ def load_question_answering_dataset(
     # set up lists for storing
     source_contexts = []
     source_questions = []
-    target_labels = []
     context_idx_map = {}
 
     source_texts = []
@@ -97,7 +97,11 @@ def load_question_answering_dataset(
 
     question_idx = 0
     for question in data_json:
-        source_texts.append(question['context_and_question'])
+        if version == 3:
+            source_texts.append(question['context_and_question'])
+        else:
+            source_texts.append(question['question'])
+            source_contexts.append(question['context'])
         target_labels.append(question['answer'])
 
     # for i, context in enumerate(data_json):
