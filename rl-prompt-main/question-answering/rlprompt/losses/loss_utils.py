@@ -42,9 +42,9 @@ def get_masked_mean_min_max(
         average_across_timesteps=True,
         sum_over_timesteps=False)
 
-    return (masked_mean,
-            masked_min.values.mean(),
-            masked_max.values.mean())
+    return (masked_mean.detach().tolist(),
+            masked_min.values.mean().detach().tolist(),
+            masked_max.values.mean().detach().tolist())
 
 
 def masked_reverse_cumsum(

@@ -42,10 +42,23 @@ def compute_length_penalty(prediction: dict,
     len_t = len(truth)
     len_p = len(prediction['generated_text'])
 
-    if len_p < len_t:
+    if len_p == 0:
         return 0
 
-    return 1-(len(truth)/len(prediction['generated_text']))
+    if len_p < len_t:
+        return len_p/len_t
+
+    return len_t/len_p
+
+
+    #
+    # if len_p == 0:
+    #     return 0
+    #
+    # if len_t/len_p > 1.0:
+    #     return len_p/len_t
+    #
+    # return len_t/len_p
 
 
 def compute_f1_score(prediction: dict,
@@ -136,7 +149,7 @@ class QuestionAnsweringReward(BaseReward):
         self.generator = pipeline("text-generation",
                                   model=self.task_lm,
                                   tokenizer=self.tokenizer,
-                                  device=0)
+                                  device=self.device)
 
     def compute_sample_rewards(self,
                                source_text: str,
@@ -211,7 +224,7 @@ class QuestionAnsweringReward(BaseReward):
 
             full_input = " ".join((prompt, src))
             hypos = self.generator(text_inputs=full_input,
-                                   max_new_tokens=10,
+                                   max_new_tokens=20,
                                    top_k=self.top_k,
                                    pad_token_id=self.tokenizer.eos_token_id,
                                    num_return_sequences=N,
@@ -231,8 +244,7 @@ class QuestionAnsweringReward(BaseReward):
             quantities_to_log['f1_scores'].append(f1_scores)
 
             # len_scores = compute_length_penalty(pred_answer, label)
-
-            quantities_to_log['brevity_score'].append(len_scores)
+            quantities_to_log['len_score'].append(len_scores)
 
             # combine EM and f1 scores
 
@@ -253,7 +265,7 @@ class QuestionAnsweringReward(BaseReward):
         # print()
         # print(src)
         # print(prompt)
-        # print(hypos[0]['generated_text'])
+        print(hypos[0]['generated_text'])
         # print(label)
         # print()
 

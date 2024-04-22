@@ -126,7 +126,11 @@ class SQLModule(BaseModule):
                                   output_tokens=output_tokens,
                                   mode="train")
         # print(logits.shape)
+        # print()
+        # print(raw_rewards)
         shaped_rewards = self._reward_shaping_func(raw_rewards)
+        # print(shaped_rewards)
+        # print()
 
         sql_loss, sql_loss_log = sql_loss_with_sparse_rewards(
             implementation=self._sql_loss_impl,
@@ -145,8 +149,8 @@ class SQLModule(BaseModule):
             rewards_log,
             sql_loss_log,
             {
-                f"{mode.value}/rewards/raw": raw_rewards.mean(),
-                f"{mode.value}/rewards/shaped": shaped_rewards.mean(),
+                f"{mode.value}/rewards/raw": raw_rewards.mean().detach().tolist(),
+                f"{mode.value}/rewards/shaped": shaped_rewards.mean().detach().tolist(),
             },
         ])
         print(sql_loss)

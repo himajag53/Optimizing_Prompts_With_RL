@@ -13,8 +13,8 @@ num_samples: 16
 num_bootstraps: 3
 # Single Prompt Model
 prompt_length: 5
-prompt_train_batch_size: 2
-prompt_infer_batch_size: 16
+prompt_train_batch_size: 3
+prompt_infer_batch_size: 8
 # LM Adaptor Model
 logit_bias: -10
 # SQL Module
@@ -24,10 +24,10 @@ reward_shaping_new_min: -50
 reward_shaping_new_max: 50
 top_k: 5
 # Trainer
-train_batch_size: 2
+train_batch_size: 3
 max_train_steps: 6000
 train_shuffle: false
-eval_batch_size: 16
+eval_batch_size: 8
 eval_steps: 500
 save_steps: 500
 learning_rate: 1e-4

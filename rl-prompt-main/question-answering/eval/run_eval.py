@@ -66,12 +66,19 @@ def main(config: "DictConfig"):
                                            config.control_output_length,
                                            config.end_punct)
 
-    questions, answers, gts, em_scores, f1_scores = evaluator.evaluate_output(test_loader)
+    (questions, answers, gts, em_scores, f1_scores, len_pens,
+     no_prompt_answers, no_prompt_ems, no_prompt_f1s, no_prompt_lens) = evaluator.evaluate_output(test_loader)
 
     output_data = {'prompt': config.prompt,
                    'questions': questions,
                    'gts': gts, 'answers': answers,
-                   'em_scores': em_scores, 'f1_scores': f1_scores}
+                   'em_scores': em_scores,
+                   'f1_scores': f1_scores,
+                   'length_penalties': len_pens,
+                   'np_answers': no_prompt_answers,
+                   'np_em_scores': no_prompt_ems,
+                   'np_f1_scores': no_prompt_f1s,
+                   'np_length_penalties': no_prompt_lens}
     output_data_df = pd.DataFrame(output_data)
     # summary_path = os.path.join(output_dir, 'summary.json')
     output_path = os.path.join(output_dir, 'outputs.json')

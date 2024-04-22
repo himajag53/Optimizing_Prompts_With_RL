@@ -98,7 +98,7 @@ class LMAdaptorModel(BaseModel):
         **kwargs
     ) -> Dict[str, torch.Tensor]:
         # print(source_texts)
-        # print(sample_ids.shape)
+        # print(sample_ids)
         state, past_key_values = self._get_generation_cache(source_texts)
         # print(state)
         # print(past_key_values)
@@ -113,6 +113,7 @@ class LMAdaptorModel(BaseModel):
                       for a in actions.tolist()]
             token_strs = [self.generator.tokenizer.convert_tokens_to_string([t])
                           for t in tokens]
+            # print(token_strs)
 
             sample_logits.append(logits.unsqueeze(dim=1))
             state, past_key_values = self._get_generation_cache(token_strs,

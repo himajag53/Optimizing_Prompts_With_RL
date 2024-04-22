@@ -1,0 +1,9 @@
+dataset: squad
+base_path: ./../data
+version: 3
+task_lm: distilgpt2
+prompt: orate practicable practicable practicable practicable
+pad_token: <|endoftext|>
+lower_outputs: false
+control_output_length: false
+end_punct: '"'

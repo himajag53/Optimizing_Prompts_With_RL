@@ -1,0 +1,8 @@
+dataset: squad
+base_path: ./../data
+task_lm: distilgpt2
+prompt: ĠmunicipalityĠDreĠDreĠDreĠDre
+pad_token: <|endoftext|>
+lower_outputs: false
+control_output_length: false
+end_punct: '"'

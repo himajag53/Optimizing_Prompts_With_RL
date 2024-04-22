@@ -154,18 +154,27 @@ class Trainer:
 
         total_steps = 0
         for epoch in range(total_train_epochs):
+            batch_logs = []
             for step, batch in enumerate(train_dataloader):
                 batch_log = self._train_step(step, batch)
+                batch_logs.append(batch_log)
                 if report_to_wandb:
                     wandb.log(batch_log)
                 total_steps += 1
 
                 if self.do_eval and eval_by_steps \
                         and total_steps % self.eval_steps == 0:
+                    # write validation info out
                     output_save_path = \
                         os.path.join(eval_save_dir,
                                      f'outputs.step.{total_steps}.json')
                     eval_log = self.evaluate(output_save_path=output_save_path)
+
+                    # write training info out
+                    output_save_path = os.path.join(eval_save_dir,
+                                                    f'training_log.epoch.{epoch + 1}.json')
+                    with open(output_save_path, 'w') as f:
+                        json.dump(batch_logs, f)
                     if report_to_wandb:
                         wandb.log(eval_log)
 
@@ -191,6 +200,12 @@ class Trainer:
                            os.path.join(ckpt_save_dir,
                                         f"ckpt.epoch.{epoch+1}.pth"))
 
+            output_save_path = os.path.join(eval_save_dir,
+                                            f'training_log.epoch.{epoch+1}.json')
+            print(batch_logs)
+            with open(output_save_path, 'w') as f:
+                json.dump(batch_logs, f)
+
     def _get_eval_dataloader(self, eval_dataset: Dataset) -> DataLoader:
         return DataLoader(eval_dataset,
                           batch_size=self.eval_batch_size)
@@ -208,6 +223,7 @@ class Trainer:
         model = self.module.eval()
         hypos = []
         scores: List[List[str]] = []
+        score_logs = []
         step = 0
         for batch in eval_dataloader:
             infer_outputs: Dict[str, Union[torch.Tensor, List[List[str]]]]
@@ -218,15 +234,23 @@ class Trainer:
             score, score_log = model.compute_rewards(
                 batch=batch,
                 output_tokens=infer_outputs['sample_tokens'])
+
             scores += score.detach().tolist()
-            if step >= 1000:
+            score_logs.append(score_log)
+            step += len(batch)
+            print(step)
+            if step >= 600:
+                print(infer_outputs)
+                print("stopping early")
                 break
-            step += 1
 
         if output_save_path is not None:
-            print(hypos)
+            prompt = model._reward._convert_tokens_to_string(hypos)
+            print(prompt)
             json.dump({'output_tokens': hypos,
-                       'scores': scores},
+                       'prompt': prompt,
+                       'scores': scores,
+                       'score_log': score_logs},
                       open(output_save_path, 'w'))
 
         score = torch.as_tensor(scores).mean().item()

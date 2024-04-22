@@ -90,13 +90,13 @@ def sql_loss_with_sparse_rewards(
         sequence=raw_losses,
         sequence_length=sequence_length)
     loss_log = {
-        "loss": loss,
-        "sequence_length": sequence_length.float().mean(),
+        "loss": loss.detach().tolist(),
+        "sequence_length": sequence_length.float().mean().detach().tolist(),
         "loss-normalized": loss_utils.mask_and_reduce(
             sequence=raw_losses,
             sequence_length=sequence_length,
             average_across_timesteps=True,
-            sum_over_timesteps=False),
+            sum_over_timesteps=False).detach().tolist(),
     }
 
     for key, value in quantities_to_log.items():
@@ -169,6 +169,7 @@ def soft_q_loss_with_sparse_rewards_2(
     A_ = torch.zeros_like(Q)
     V_ = logits_.logsumexp(dim=-1)
     Q_[:, :-1] = V_[:, 1:]
+
     A_[:, :-1] = V_[:, 1:] - V_[:, :-1]
     # Terminal V-target is the last V-target before
     # the episode ends, thus depends on `sequence_length`
@@ -190,6 +191,9 @@ def soft_q_loss_with_sparse_rewards_2(
         utils.colorful_warning("Recover-MLE Mode", bg="red")
         A_ = A.detach() + 1
 
+    # print(rewards)
+    # print(A)
+    # print(A_)
     raw_losses = F.mse_loss(A, A_, reduction="none")
     quantities_to_log = {
         "Q": Q,
